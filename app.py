@@ -21,30 +21,36 @@ with st.sidebar:
 if api_key:
     try:
         genai.configure(api_key=api_key)
-        # এখানে মডেলের নামের আগে 'models/' যোগ করা হয়েছে যা এররটি সমাধান করবে
-        model = genai.GenerativeModel("models/gemini-1.5-flash", system_instruction=MASTER_PROMPT)
+        
+        # এখানে মডেলের নাম সরাসরি 'gemini-1.5-flash' দিন
+        model = genai.GenerativeModel(model_name="gemini-1.5-flash", system_instruction=MASTER_PROMPT)
         
         uploaded_file = st.file_uploader("বইয়ের PDF আপলোড করুন", type=["pdf"])
 
         if uploaded_file:
             if st.button(f"🚀 {chapter} লোড করো"):
-                with st.spinner("পিডিএফ প্রসেস হচ্ছে, দয়া করে অপেক্ষা করুন..."):
+                with st.spinner("পিডিএফ থেকে তথ্য খোঁজা হচ্ছে..."):
                     try:
                         file_content = uploaded_file.getvalue()
                         q = f"তুমি {chapter} এর সারমর্ম, ১০টি সৃজনশীল কাজ, ১০টি শব্দার্থ এবং ১০টি এমসিকিউ একবারে দাও।"
                         
+                        # ফাইল ও প্রম্পট পাঠানো
                         response = model.generate_content([
                             {'mime_type': 'application/pdf', 'data': file_content},
                             q
                         ])
                         st.session_state.result = response.text
                     except Exception as e:
-                        st.error(f"ডেটা জেনারেট করতে সমস্যা: {e}")
+                        # যদি ফ্ল্যাশ কাজ না করে তবে প্রো ভার্সন ট্রাই করবে
+                        st.info("বিকল্প মডেল চেষ্টা করা হচ্ছে...")
+                        model_pro = genai.GenerativeModel(model_name="gemini-1.5-pro", system_instruction=MASTER_PROMPT)
+                        response = model_pro.generate_content([{'mime_type': 'application/pdf', 'data': file_content}, q])
+                        st.session_state.result = response.text
 
             if 'result' in st.session_state:
                 st.markdown(st.session_state.result)
                 st.divider()
     except Exception as e:
-        st.error(f"এপিআই কনফিগারেশনে সমস্যা: {e}")
+        st.error(f"এপিআই কী সঠিক নয় অথবা সমস্যা হয়েছে: {e}")
 else:
     st.warning("চালু করতে সাইডবারে API Key দিন।")
