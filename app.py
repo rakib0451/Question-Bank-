@@ -19,32 +19,32 @@ with st.sidebar:
     chapter = st.selectbox("অধ্যায় নির্বাচন করুন:", ["অধ্যায় ১", "অধ্যায় ২", "অধ্যায় ৩"])
 
 if api_key:
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-1.5-flash", system_instruction=MASTER_PROMPT)
-    
-    uploaded_file = st.file_uploader("বইয়ের PDF আপলোড করুন", type=["pdf"])
+    try:
+        genai.configure(api_key=api_key)
+        # এখানে মডেলের নামের আগে 'models/' যোগ করা হয়েছে যা এররটি সমাধান করবে
+        model = genai.GenerativeModel("models/gemini-1.5-flash", system_instruction=MASTER_PROMPT)
+        
+        uploaded_file = st.file_uploader("বইয়ের PDF আপলোড করুন", type=["pdf"])
 
-    if uploaded_file:
-        if st.button(f"🚀 {chapter} লোড করো"):
-            with st.spinner("পিডিএফ প্রসেস হচ্ছে, দয়া করে অপেক্ষা করুন..."):
-                try:
-                    # ফাইল পড়ার সঠিক পদ্ধতি
-                    file_content = uploaded_file.getvalue()
-                    
-                    # প্রম্পট তৈরি
-                    q = f"তুমি {chapter} এর সারমর্ম, ১০টি সৃজনশীল কাজ, ১০টি শব্দার্থ এবং ১০টি এমসিকিউ একবারে দাও।"
-                    
-                    # জেনারেট কন্টেন্ট
-                    response = model.generate_content([
-                        {'mime_type': 'application/pdf', 'data': file_content},
-                        q
-                    ])
-                    st.session_state.result = response.text
-                except Exception as e:
-                    st.error(f"সমস্যাটি হলো: {e}")
+        if uploaded_file:
+            if st.button(f"🚀 {chapter} লোড করো"):
+                with st.spinner("পিডিএফ প্রসেস হচ্ছে, দয়া করে অপেক্ষা করুন..."):
+                    try:
+                        file_content = uploaded_file.getvalue()
+                        q = f"তুমি {chapter} এর সারমর্ম, ১০টি সৃজনশীল কাজ, ১০টি শব্দার্থ এবং ১০টি এমসিকিউ একবারে দাও।"
+                        
+                        response = model.generate_content([
+                            {'mime_type': 'application/pdf', 'data': file_content},
+                            q
+                        ])
+                        st.session_state.result = response.text
+                    except Exception as e:
+                        st.error(f"ডেটা জেনারেট করতে সমস্যা: {e}")
 
-        if 'result' in st.session_state:
-            st.markdown(st.session_state.result)
-            st.divider()
+            if 'result' in st.session_state:
+                st.markdown(st.session_state.result)
+                st.divider()
+    except Exception as e:
+        st.error(f"এপিআই কনফিগারেশনে সমস্যা: {e}")
 else:
     st.warning("চালু করতে সাইডবারে API Key দিন।")
